@@ -1,7 +1,7 @@
 """
-Outil interactif de soutenance — mémoire M2 UPEC
-Immigration et criminalité en France : démêler réalité socio-économique et perception médiatique
-Auteur : Simon ([co-auteur])
+Interactive defense tool — M2 Thesis, UPEC
+Medias, Immigration and Crime Rates in France: separating socio-economic factors from media perception
+Authors: Simon Beaugrand and Mélissa Kurnaz
 """
 import json
 from pathlib import Path
@@ -16,7 +16,7 @@ import streamlit as st
 # CONFIG
 # ============================================================
 st.set_page_config(
-    page_title="Immigration & cadrage médiatique",
+    page_title="Immigration & media framing",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -26,7 +26,7 @@ ROOT = Path(__file__).parent
 DATA = ROOT / "data"
 
 # ============================================================
-# COEFFICIENTS M2 (régression sur le panel fusionné, N=60)
+# M2 COEFFICIENTS (regression on the merged panel, N=60)
 # share_crime_frame ~ const + b1*TAUX_IMMI + b2*TAUX_CRIM + b3*TAUX_CHOMAGE
 #                   + b4*TAUX_PAUVRETE + b5*log(DENSITE)
 # ============================================================
@@ -39,7 +39,7 @@ COEFS = {
     "logdens":     0.0153,
 }
 
-# WCB p-values pour annoter
+# WCB p-values for annotation
 WCB_P = {
     "immigration": 0.921,
     "crime_real":  None,
@@ -73,10 +73,10 @@ def load_geojson():
         return json.load(f)
 
 # ============================================================
-# HELPERS — projection source → départements
+# HELPERS — project source-level data onto departments
 # ============================================================
 def project_source_to_depts(source_panel: pd.DataFrame, year: int, var: str, mapping: dict) -> pd.DataFrame:
-    """Projette une variable source-level sur les départements couverts par chaque titre."""
+    """Project a source-level variable onto the departments covered by each title."""
     sub = source_panel[source_panel["year"] == year]
     rows = []
     for _, row in sub.iterrows():
@@ -86,13 +86,13 @@ def project_source_to_depts(source_panel: pd.DataFrame, year: int, var: str, map
     df = pd.DataFrame(rows)
     if df.empty:
         return df
-    # Dédupliquer : un département peut être couvert par plusieurs titres (ex : Brest = Ouest-France + Le Télégramme)
-    # → moyenne
+    # Deduplicate: a department may be covered by several titles (e.g., Brest = Ouest-France + Le Télégramme)
+    # → average across titles
     return df.groupby("code_dept", as_index=False).agg({"value": "mean", "source": lambda s: ", ".join(sorted(set(s)))})
 
 
 def predict_share_crime_frame(immig, crime, chom, pauv, dens):
-    """Applique le modèle M2 à un vecteur de caractéristiques."""
+    """Apply the M2 model to a feature vector."""
     return (COEFS["const"]
             + COEFS["immigration"] * immig
             + COEFS["crime_real"] * crime
@@ -105,12 +105,12 @@ def predict_share_crime_frame(immig, crime, chom, pauv, dens):
 # UI — SIDEBAR
 # ============================================================
 with st.sidebar:
-    st.markdown("### 🇫🇷 Immigration et cadrage médiatique")
-    st.caption("Outil interactif de soutenance — mémoire M2, UPEC")
+    st.markdown("### 🇫🇷 Immigration & media framing")
+    st.caption("Interactive defense tool — M2 Thesis, UPEC")
     st.markdown("---")
-    page = st.radio("Navigation", ["🗺️  Cartographie", "🎚️  Simulateur", "ℹ️  À propos"], label_visibility="collapsed")
+    page = st.radio("Navigation", ["🗺️  Cartography", "🎚️  Simulator", "ℹ️  About"], label_visibility="collapsed")
     st.markdown("---")
-    st.caption("Données : INSEE (réel), Europresse + DistilCamemBERT (média), 2016-2021.")
+    st.caption("Data: INSEE (real-world), Europresse + DistilCamemBERT (media), 2016-2021.")
 
 source_panel = load_panel_source()
 dept_panel   = load_panel_dept()
@@ -118,35 +118,36 @@ mapping      = load_source_to_depts()
 geojson      = load_geojson()
 
 # ============================================================
-# PAGE 1 — CARTOGRAPHIE
+# PAGE 1 — CARTOGRAPHY
 # ============================================================
-if page.endswith("Cartographie"):
-    st.title("Cartographie du découplage")
+if page.endswith("Cartography"):
+    st.title("Mapping the raw correlations")
     st.markdown(
-        "Comparez côte à côte deux cartes pour observer si la géographie de la **réalité socio-économique** "
-        "et celle du **cadrage médiatique** se correspondent. Le résultat central du mémoire devient visible : "
-        "**la couleur de la pauvreté ressemble à celle du cadrage criminel ; la couleur de l'immigration "
-        "réelle ressemble à celle du crime réel, mais ni l'une ni l'autre n'explique le cadrage une fois les contrôles posés.**"
+        "Compare two maps of France side by side. In **raw geographic distributions**, all socio-economic "
+        "variables — poverty, immigration, unemployment, recorded crime — display some correlation with "
+        "crime framing. The patterns are similar across variables. This is precisely the **confounded picture** "
+        "that motivates a rigorous regression with simultaneous controls. The **Simulator** tab applies the M2 "
+        "model and shows which variable actually survives."
     )
 
     VAR_OPTIONS = {
-        "Cadrage criminel (presse)":      ("share_crime_frame", "OrRd",  "Part d'articles immigration cadrés crime"),
-        "Taux d'immigration (réel)":      ("TAUX_IMMI",         "Blues", "% d'immigrés (INSEE)"),
-        "Taux de pauvreté":               ("TAUX_PAUVRETE",     "Purples","% de personnes sous le seuil de pauvreté"),
-        "Crime réel pour 1000 hab.":      ("TAUX_CRIM_GLOBAL_1000", "Reds", "Indice de criminalité globale"),
-        "Taux de chômage":                ("TAUX_CHOMAGE",      "Greens","% de chômeurs"),
+        "Crime framing (press)":            ("share_crime_frame", "OrRd",  "Share of immigration articles framed as crime"),
+        "Immigration rate (real)":          ("TAUX_IMMI",         "Blues", "% immigrants (INSEE)"),
+        "Poverty rate":                     ("TAUX_PAUVRETE",     "Purples","% below the poverty line"),
+        "Recorded crime per 1,000":         ("TAUX_CRIM_GLOBAL_1000", "Reds", "Overall crime index"),
+        "Unemployment rate":                ("TAUX_CHOMAGE",      "Greens","% unemployed"),
     }
 
     c_top1, c_top2, c_top3 = st.columns([1, 1, 2])
     with c_top1:
-        var_left = st.selectbox("Carte de gauche", list(VAR_OPTIONS.keys()), index=2)
+        var_left = st.selectbox("Left map", list(VAR_OPTIONS.keys()), index=2)
     with c_top2:
-        var_right = st.selectbox("Carte de droite", list(VAR_OPTIONS.keys()), index=0)
+        var_right = st.selectbox("Right map", list(VAR_OPTIONS.keys()), index=0)
     with c_top3:
-        year = st.slider("Année", 2016, 2021, 2019)
+        year = st.slider("Year", 2016, 2021, 2019)
 
     if geojson is None:
-        st.error("⚠️  data/departements.geojson manquant. Voir le README.")
+        st.error("⚠️  data/departements.geojson missing. See the README.")
         st.stop()
 
     def make_map(var_label):
@@ -160,7 +161,7 @@ if page.endswith("Cartographie"):
             color="value",
             color_continuous_scale=scale,
             hover_data={"code_dept": True, "value": ":.2f", "source": True},
-            labels={"value": label, "source": "Titre(s)"},
+            labels={"value": label, "source": "Title(s)"},
         )
         fig.update_geos(
             visible=False, fitbounds="locations",
@@ -181,68 +182,79 @@ if page.endswith("Cartographie"):
     with c_right:
         st.plotly_chart(make_map(var_right), use_container_width=True)
 
+    st.markdown("---")
+    with st.expander("💡 Suggested reading for the defense"):
+        st.markdown(
+            "1. **Compare any socio-economic variable with crime framing** → you will see that the colour "
+            "patterns broadly follow each other. This is the raw confounding that the regression has to disentangle.\n"
+            "2. **Compare immigration with recorded crime** → strong visual correlation in the cross-section. "
+            "This is the journalist's reading — and it is precisely what controls dissolve.\n"
+            "3. **Switch to the Simulator tab** to see which variable actually drives the prediction once all "
+            "controls are applied simultaneously. Spoiler: poverty does; immigration does not."
+        )
+
     st.caption(
-        "Note : les valeurs sont projetées au niveau du **territoire de couverture de chaque titre** (les départements "
-        "couverts par un même journal partagent la même valeur). Les territoires non couverts par les 10 titres retenus "
-        "(Alsace, Alpes, Centre-Val-de-Loire en partie) apparaissent en blanc."
+        "Note: values are projected at the **press coverage zone** level (departments covered by the same title "
+        "share the same value). Territories not covered by the 10 selected titles (parts of Alsace, the Alps, "
+        "Centre-Val-de-Loire) appear in white."
     )
 
 
 # ============================================================
-# PAGE 2 — SIMULATEUR
+# PAGE 2 — SIMULATOR
 # ============================================================
-elif page.endswith("Simulateur"):
-    st.title("Simulateur de cadrage criminel")
+elif page.endswith("Simulator"):
+    st.title("Crime-framing simulator")
     st.markdown(
-        "Faites varier les caractéristiques d'un territoire fictif et observez la prédiction du modèle M2 "
-        "sur la part d'articles immigration cadrés en termes de criminalité (**share_crime_frame**). "
-        "Le but : voir **quelle variable bouge réellement le résultat**."
+        "Vary the characteristics of a hypothetical territory and observe the M2 model's prediction for the "
+        "share of immigration articles framed as crime (**share_crime_frame**). The goal: see "
+        "**which variable actually moves the result** once all controls are applied simultaneously."
     )
 
     c1, c2 = st.columns([1, 1.2])
 
     with c1:
-        st.subheader("Caractéristiques du territoire")
+        st.subheader("Territory characteristics")
 
-        preset = st.radio("Scénario rapide", ["Personnalisé", "Territoire riche", "Territoire pauvre", "Moyenne du corpus"], horizontal=True)
-        if preset == "Territoire riche":
+        preset = st.radio("Quick scenario", ["Custom", "Affluent territory", "Deprived territory", "Corpus average"], horizontal=True)
+        if preset == "Affluent territory":
             d = {"immig": 7.0, "crime": 45.0, "chom": 6.0, "pauv": 10.0, "dens": 250}
-        elif preset == "Territoire pauvre":
+        elif preset == "Deprived territory":
             d = {"immig": 9.0, "crime": 60.0, "chom": 12.0, "pauv": 18.0, "dens": 250}
-        elif preset == "Moyenne du corpus":
+        elif preset == "Corpus average":
             d = {"immig": 8.5, "crime": 52.0, "chom":  8.5, "pauv": 14.5, "dens": 280}
         else:
             d = {"immig": 8.5, "crime": 52.0, "chom":  8.5, "pauv": 14.5, "dens": 280}
 
-        immig = st.slider("Taux d'immigration (%)",   3.0, 20.0, d["immig"], 0.1)
-        pauv  = st.slider("Taux de pauvreté (%)",     8.0, 25.0, d["pauv"],  0.1)
-        chom  = st.slider("Taux de chômage (%)",      4.0, 16.0, d["chom"],  0.1)
-        crime = st.slider("Crime réel (pour 1000)", 20.0, 90.0, d["crime"], 1.0)
-        dens  = st.slider("Densité (hab/km², échelle log)", 30, 5000, int(d["dens"]), 10)
+        immig = st.slider("Immigration rate (%)",          3.0, 20.0, d["immig"], 0.1)
+        pauv  = st.slider("Poverty rate (%)",              8.0, 25.0, d["pauv"],  0.1)
+        chom  = st.slider("Unemployment rate (%)",         4.0, 16.0, d["chom"],  0.1)
+        crime = st.slider("Recorded crime (per 1,000)",   20.0, 90.0, d["crime"], 1.0)
+        dens  = st.slider("Density (inhab/km², log scale)", 30, 5000, int(d["dens"]), 10)
 
     with c2:
-        st.subheader("Prédiction")
+        st.subheader("Prediction")
         pred = predict_share_crime_frame(immig, crime, chom, pauv, dens)
         pred_pct = pred * 100
         baseline = predict_share_crime_frame(8.5, 52, 8.5, 14.5, 280) * 100
 
         st.metric(
-            label="Part d'articles immigration cadrés crime",
+            label="Share of immigration articles framed as crime",
             value=f"{pred_pct:.1f} %",
-            delta=f"{pred_pct - baseline:+.1f} pts vs. moyenne du corpus",
+            delta=f"{pred_pct - baseline:+.1f} pts vs. corpus average",
         )
 
-        # Décomposition : contribution de chaque variable par rapport à la moyenne
+        # Decomposition: contribution of each variable relative to the corpus average
         contribs = {
-            "Pauvreté":            COEFS["pauvrete"]    * (pauv  - 14.5) * 100,
-            "Chômage":             COEFS["chomage"]     * (chom  -  8.5) * 100,
-            "log(Densité)":        COEFS["logdens"]     * (np.log(dens) - np.log(280)) * 100,
-            "Immigration":         COEFS["immigration"] * (immig -  8.5) * 100,
-            "Crime réel":          COEFS["crime_real"]  * (crime - 52)   * 100,
+            "Poverty":            COEFS["pauvrete"]    * (pauv  - 14.5) * 100,
+            "Unemployment":       COEFS["chomage"]     * (chom  -  8.5) * 100,
+            "log(Density)":       COEFS["logdens"]     * (np.log(dens) - np.log(280)) * 100,
+            "Immigration":        COEFS["immigration"] * (immig -  8.5) * 100,
+            "Recorded crime":     COEFS["crime_real"]  * (crime - 52)   * 100,
         }
         order = sorted(contribs.keys(), key=lambda k: abs(contribs[k]), reverse=True)
 
-        st.markdown("**Contribution de chaque variable** (en points par rapport à la moyenne du corpus)")
+        st.markdown("**Contribution of each variable** (in points relative to the corpus average)")
         fig = go.Figure()
         fig.add_trace(go.Bar(
             x=[contribs[k] for k in order],
@@ -264,57 +276,58 @@ elif page.endswith("Simulateur"):
         st.plotly_chart(fig, use_container_width=True)
 
         st.caption(
-            "Lecture : une barre rouge = la variable tire le cadrage criminel vers le haut, "
-            "bleue = vers le bas, par rapport à un territoire « moyen » du corpus. "
-            "**Faites monter l'immigration de 5 à 20% : la prédiction ne bouge presque pas. "
-            "Faites monter la pauvreté de 10 à 20% : la prédiction change visiblement.**"
+            "Reading: a red bar means the variable pulls crime framing UP relative to a corpus-average territory; "
+            "a blue bar pulls it DOWN. "
+            "**Move immigration from 5 to 20%: the prediction barely changes. "
+            "Move poverty from 10 to 20%: the prediction shifts visibly.**"
         )
 
-    # Significativité
+    # Statistical significance
     st.markdown("---")
-    st.markdown("##### Significativité statistique (M2, N=60, 10 clusters)")
+    st.markdown("##### Statistical significance (M2, N=60, 10 clusters)")
     rows = []
-    for k, lbl in [("immigration", "Immigration"), ("pauvrete", "Pauvreté"),
-                   ("chomage", "Chômage"), ("logdens", "log(Densité)"), ("crime_real", "Crime réel")]:
+    for k, lbl in [("immigration", "Immigration"), ("pauvrete", "Poverty"),
+                   ("chomage", "Unemployment"), ("logdens", "log(Density)"), ("crime_real", "Recorded crime")]:
         p = WCB_P.get(k)
         sig = "—" if p is None else (
-            "✅ Significatif (p < 0,001)" if p < 0.001 else
-            "✅ Significatif (5%)" if p < 0.05 else
-            "❌ Non significatif"
+            "✅ Significant (p < 0.001)" if p < 0.001 else
+            "✅ Significant (5%)" if p < 0.05 else
+            "❌ Not significant"
         )
-        rows.append({"Variable": lbl, "Coefficient β": f"{COEFS[k]:+.4f}", "WCB p-value": "—" if p is None else f"{p:.3f}", "Statut": sig})
+        rows.append({"Variable": lbl, "Coefficient β": f"{COEFS[k]:+.4f}", "WCB p-value": "—" if p is None else f"{p:.3f}", "Status": sig})
     st.table(pd.DataFrame(rows))
 
 
 # ============================================================
-# PAGE 3 — À PROPOS
+# PAGE 3 — ABOUT
 # ============================================================
 else:
-    st.title("À propos")
+    st.title("About")
     st.markdown("""
-**Mémoire de M2** — Université Paris-Est Créteil (UPEC), 2025-2026
-Auteurs : Simon Beaugrand et Mélissa Kurnaz
+**M2 Thesis** — Université Paris-Est Créteil (UPEC), 2025-2026
+Authors: Simon Beaugrand and Mélissa Kurnaz
 
-### Question
-Les médias français maintiennent-ils une **surreprésentation** du lien entre immigration et criminalité par rapport à la
-réalité statistique, ou ce lien **se dissout-il** des deux côtés une fois le contexte socio-économique pris en compte ?
+### Research question
+Do French media maintain an **overrepresentation** of the link between immigration and crime relative to
+statistical reality, or does this link **dissolve on both sides** once the socio-economic context is
+controlled for?
 
-### Méthodologie
-- **Volet économétrique** : panel département × année, 2016-2021 (96 départements, 576 observations), OLS + effets fixes
-+ stratégie IV (shift-share).
-- **Volet NLP** : corpus original de **25 783 articles** sur l'immigration extraits de **10 quotidiens régionaux** via Europresse,
-analyse par dictionnaires lexicaux pour le cadrage et **DistilCamemBERT** pour le sentiment.
+### Methodology
+- **Econometric chapter**: department × year panel, 2016-2021 (96 departments, 576 observations), OLS +
+two-way fixed effects + IV strategy (shift-share).
+- **NLP chapter**: original corpus of **25,783 articles** on immigration extracted from **10 regional
+dailies** via Europresse, lexical-dictionary analysis for framing and **DistilCamemBERT** for sentiment.
 
-### Réponse
-**Double découplage**. Sous contrôles, l'immigration n'explique ni le crime réel, ni la façon dont la presse cadre ce crime.
-Des deux côtés, la variable corrélée au résultat est la **pauvreté** du territoire.
+### Finding
+**Double decoupling**. Once the socio-economic context is controlled for, immigration explains neither
+recorded crime nor the way the regional press frames immigration in criminal terms. On both sides, the
+variable correlated with the outcome is the **poverty rate** of the territory.
 
-### Cet outil
-- **Onglet Cartographie** : compare deux cartes côte à côte. En données brutes, les trois 
-variables socio-économiques (pauvreté, immigration, crime réel) montrent toutes une corrélation 
-géographique visible avec le cadrage médiatique. C'est précisément ce constat de confusion 
-non-contrôlée qui motive la régression rigoureuse.
-- **Onglet Simulateur** : applique le modèle M2 estimé avec tous les contrôles simultanés. 
-Faire varier l'immigration ne change presque pas la prédiction de cadrage criminel, faire 
-varier la pauvreté la change beaucoup.
+### This tool
+- **Cartography tab**: compares two side-by-side maps. In raw terms, all socio-economic variables
+(poverty, immigration, recorded crime) display some geographic correlation with crime framing. This is
+the confounded picture that motivates the regression.
+- **Simulator tab**: applies the M2 regression with all controls held constant. Moving the immigration
+slider barely changes the prediction; moving the poverty slider changes it significantly. This is the
+double decoupling, made tangible.
 """)
