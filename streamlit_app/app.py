@@ -181,17 +181,6 @@ if page.endswith("Cartographie"):
     with c_right:
         st.plotly_chart(make_map(var_right), use_container_width=True)
 
-    st.markdown("---")
-    with st.expander("💡 Suggestion de lecture pour la soutenance"):
-        st.markdown(
-            "1. **Carte 1 = Crime réel / Carte 2 = Cadrage criminel** → on voit que la couleur ne suit pas : "
-            "il y a des territoires à fort crime réel et faible cadrage, et inversement.\n"
-            "2. **Carte 1 = Taux de pauvreté / Carte 2 = Cadrage criminel** → les couleurs se ressemblent : "
-            "c'est le résultat principal du chapitre 5 (pauvreté → cadrage, indépendamment de l'immigration et du crime).\n"
-            "3. **Carte 1 = Taux d'immigration / Carte 2 = Cadrage criminel** → les couleurs ne se ressemblent pas : "
-            "c'est le découplage entre immigration réelle et représentation médiatique."
-        )
-
     st.caption(
         "Note : les valeurs sont projetées au niveau du **territoire de couverture de chaque titre** (les départements "
         "couverts par un même journal partagent la même valeur). Les territoires non couverts par les 10 titres retenus "
