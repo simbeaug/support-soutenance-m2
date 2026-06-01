@@ -304,7 +304,7 @@ else:
     st.title("À propos")
     st.markdown("""
 **Mémoire de M2** — Université Paris-Est Créteil (UPEC), 2025-2026
-Auteurs : Simon [Nom] et [co-auteur]
+Auteurs : Simon Beaugrand et Mélissa Kurnaz
 
 ### Question
 Les médias français maintiennent-ils une **surreprésentation** du lien entre immigration et criminalité par rapport à la
@@ -321,8 +321,11 @@ analyse par dictionnaires lexicaux pour le cadrage et **DistilCamemBERT** pour l
 Des deux côtés, la variable corrélée au résultat est la **pauvreté** du territoire.
 
 ### Cet outil
-- **Onglet Cartographie** : compare deux cartes côte à côte pour rendre visible que la géographie de la pauvreté ressemble
-à celle du cadrage médiatique, alors que celle de l'immigration ne ressemble ni à l'une ni à l'autre.
-- **Onglet Simulateur** : démontre quantitativement, à partir du modèle M2, que faire varier l'immigration n'influence
-presque pas la prédiction de cadrage criminel, alors que faire varier la pauvreté la change beaucoup.
+- **Onglet Cartographie** : compare deux cartes côte à côte. En données brutes, les trois 
+variables socio-économiques (pauvreté, immigration, crime réel) montrent toutes une corrélation 
+géographique visible avec le cadrage médiatique. C'est précisément ce constat de confusion 
+non-contrôlée qui motive la régression rigoureuse.
+- **Onglet Simulateur** : applique le modèle M2 estimé avec tous les contrôles simultanés. 
+Faire varier l'immigration ne change presque pas la prédiction de cadrage criminel, faire 
+varier la pauvreté la change beaucoup.
 """)
